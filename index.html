@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0e0e12">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<title>Raag</title>
+<style>
+:root{--bg:#0e0e12;--card:#18181f;--card2:#22222b;--txt:#f4f4f6;--mut:#9a9aa8;--acc:#ff8a3d;--acc2:#ffb26b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+#app{max-width:640px;margin:0 auto;height:100%;display:flex;flex-direction:column;position:relative}
+header{padding:16px 16px 8px;display:flex;align-items:center;justify-content:space-between}
+header h1{margin:0;font-size:24px;letter-spacing:.5px}
+header h1 span{color:var(--acc)}
+main{flex:1;overflow-y:auto;padding:0 16px 150px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:8px 0 12px;scrollbar-width:none}
+.chip{padding:8px 14px;border-radius:20px;background:var(--card2);white-space:nowrap;font-size:14px}
+.chip.on{background:var(--acc);color:#1a1006;font-weight:600}
+h2{font-size:18px;margin:16px 0 8px}
+.row{display:flex;align-items:center;gap:12px;padding:8px;border-radius:10px}
+.row:active{background:var(--card)}
+.row img{width:48px;height:48px;border-radius:6px;object-fit:cover;background:var(--card2)}
+.row .t{flex:1;min-width:0}
+.row .t b,.row .t small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .t small{color:var(--mut);margin-top:2px}
+.row.playing .t b{color:var(--acc)}
+.ib{padding:8px;font-size:18px;color:var(--mut)}
+.ib.on{color:var(--acc)}
+input[type=search],input[type=text]{width:100%;padding:12px 16px;border-radius:24px;border:0;background:var(--card2);color:var(--txt);font-size:16px;outline:none}
+.card{background:var(--card);border-radius:12px;padding:14px;margin:8px 0}
+.btn{background:var(--acc);color:#1a1006;font-weight:600;padding:10px 16px;border-radius:20px}
+.btn.g{background:var(--card2);color:var(--txt)}
+.empty{color:var(--mut);text-align:center;padding:40px 0}
+nav{position:absolute;bottom:0;left:0;right:0;display:flex;background:#101015;border-top:1px solid #23232c;padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav button{flex:1;padding:10px 0;font-size:12px;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:2px}
+nav button i{font-style:normal;font-size:20px}
+nav button.on{color:var(--acc)}
+#mini{position:absolute;left:8px;right:8px;bottom:calc(58px + env(safe-area-inset-bottom));background:var(--card2);border-radius:12px;display:none;align-items:center;gap:10px;padding:8px;z-index:4;overflow:hidden}
+#mini img{width:42px;height:42px;border-radius:6px;object-fit:cover}
+#mini .t{flex:1;min-width:0}
+#mini .t b,#mini .t small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mini .t small{color:var(--mut)}
+#mini .bar{position:absolute;left:0;bottom:0;height:2px;background:var(--acc);width:0}
+#full{position:fixed;inset:0;background:linear-gradient(#2a1a10,var(--bg) 60%);z-index:10;display:none;flex-direction:column;padding:20px 24px calc(24px + env(safe-area-inset-bottom));max-width:640px;margin:0 auto}
+#full.open{display:flex}
+#full .top{display:flex;justify-content:space-between}
+#full img{width:100%;max-width:340px;aspect-ratio:1;object-fit:cover;border-radius:14px;margin:auto;box-shadow:0 10px 40px #0008}
+#full h3{margin:16px 0 2px;font-size:22px}
+#full p{margin:0;color:var(--mut)}
+input[type=range]{width:100%;accent-color:var(--acc);margin:16px 0 4px}
+.times{display:flex;justify-content:space-between;color:var(--mut);font-size:12px}
+.ctrl{display:flex;justify-content:center;align-items:center;gap:28px;margin-top:10px}
+.ctrl button{font-size:28px}
+.ctrl .play{width:64px;height:64px;border-radius:50%;background:var(--acc);color:#1a1006;font-size:26px}
+#toast{position:fixed;left:50%;bottom:140px;transform:translateX(-50%);background:#fff;color:#111;padding:10px 16px;border-radius:20px;font-size:14px;z-index:20;opacity:0;transition:.25s;pointer-events:none;max-width:90%}
+#toast.on{opacity:1}
+#sheet{position:fixed;inset:0;background:#000a;z-index:15;display:none;align-items:flex-end}
+#sheet.open{display:flex}
+#sheet .box{background:var(--card);width:100%;max-width:640px;margin:0 auto;border-radius:16px 16px 0 0;padding:16px;max-height:70%;overflow:auto}
+</style>
+</head>
+<body>
+<div id="app">
+  <header><h1>Raa<span>g</span></h1><button class="ib" id="gear" aria-label="Settings">⚙️</button></header>
+  <main id="main"></main>
+  <div id="mini"><img id="mImg" alt=""><div class="t"><b id="mT"></b><small id="mA"></small></div>
+    <button class="ib" id="mHeart">♡</button><button class="ib" id="mPlay" style="color:var(--txt);font-size:22px">▶</button><div class="bar" id="mBar"></div></div>
+  <nav id="nav">
+    <button data-v="home" class="on"><i>🏠</i>Home</button>
+    <button data-v="search"><i>🔍</i>Search</button>
+    <button data-v="lib"><i>📚</i>Library</button>
+  </nav>
+</div>
+
+<div id="full">
+  <div class="top"><button class="ib" id="fClose" style="font-size:24px">⌄</button><button class="ib" id="fAdd" style="font-size:22px">＋</button></div>
+  <img id="fImg" alt="">
+  <div style="display:flex;align-items:center;justify-content:space-between"><div style="min-width:0"><h3 id="fT"></h3><p id="fA"></p></div><button class="ib" id="fHeart" style="font-size:26px">♡</button></div>
+  <input type="range" id="seek" min="0" max="100" value="0">
+  <div class="times"><span id="cur">0:00</span><span id="dur">0:00</span></div>
+  <div class="ctrl"><button id="prev">⏮</button><button class="play" id="fPlay">▶</button><button id="next">⏭</button></div>
+</div>
+<div id="sheet"><div class="box" id="sheetBox"></div></div>
+<div id="toast"></div>
+<audio id="au" preload="auto"></audio>
+
+<script>
+const $=s=>document.querySelector(s);
+const au=$('#au'),main=$('#main');
+const API='https://api.jamendo.com/v3.0';
+const GENRES=['pop','rock','electronic','hiphop','jazz','classical','lounge','ambient','metal','reggae','world','indie','folk','blues'];
+const store={
+  get(k,d){try{const v=localStorage.getItem('raag_'+k);return v?JSON.parse(v):d}catch(e){return d}},
+  set(k,v){try{localStorage.setItem('raag_'+k,JSON.stringify(v))}catch(e){}}
+};
+let key=store.get('key','');
+let liked=store.get('liked',[]);       // [track]
+let lists=store.get('lists',{});       // {name:[track]}
+let offline=store.get('offline',[]);   // [track]
+let view='home',genre='pop',queue=[],qi=-1,cur=null;
+
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),2200)}
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=s=>{s=Math.floor(s||0);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+const slim=t=>({id:t.id,name:t.name,artist_name:t.artist_name,image:t.image||t.album_image||'',audio:t.audio,duration:t.duration});
+const isLiked=id=>liked.some(t=>t.id==id);
+const isOff=id=>offline.some(t=>t.id==id);
+
+async function jam(path,params){
+  if(!key)throw new Error('nokey');
+  const u=new URL(API+path);
+  const p={client_id:key,format:'json',limit:30,audioformat:'mp32',imagesize:300,...params};
+  Object.entries(p).forEach(([k,v])=>u.searchParams.set(k,v));
+  const r=await fetch(u);
+  if(!r.ok)throw new Error('http '+r.status);
+  const j=await r.json();
+  if(j.headers&&j.headers.status==='failed')throw new Error(j.headers.error_message||'api');
+  return (j.results||[]).filter(t=>t.audio).map(slim);
+}
+
+function rowHTML(t,i,ctx){
+  return `<div class="row ${cur&&cur.id==t.id?'playing':''}" data-i="${i}" data-ctx="${ctx}">
+    <img loading="lazy" src="${esc(t.image)}" alt="">
+    <div class="t"><b>${esc(t.name)}</b><small>${esc(t.artist_name)}</small></div>
+    <button class="ib ${isLiked(t.id)?'on':''}" data-a="like">${isLiked(t.id)?'♥':'♡'}</button>
+    <button class="ib" data-a="more">⋯</button></div>`;
+}
+const ctxLists={};
+function bindRows(list,ctx){
+  ctxLists[ctx]=list;
+  main.querySelectorAll(`.row[data-ctx="${ctx}"]`).forEach(el=>{
+    const i=+el.dataset.i;
+    el.addEventListener('click',e=>{
+      const a=e.target.closest('[data-a]')?.dataset.a;
+      if(a==='like'){toggleLike(list[i]);return}
+      if(a==='more'){openMore(list[i]);return}
+      play(list,i);
+    });
+  });
+}
+
+/* ---------- views ---------- */
+function noKeyCard(){
+  return `<div class="card"><b>Jamendo key chahiye</b><p style="color:var(--mut);margin:6px 0 12px">Settings (⚙️) mein apna free Jamendo client ID paste karo, phir gaane aane lagenge.</p><button class="btn" onclick="openSettings()">Settings kholo</button></div>`;
+}
+async function renderHome(){
+  main.innerHTML=`<div class="chips">${GENRES.map(g=>`<button class="chip ${g===genre?'on':''}" data-g="${g}">${g}</button>`).join('')}</div><h2>Trending: ${esc(genre)}</h2><div id="list"><div class="empty">Loading…</div></div>`;
+  main.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{genre=c.dataset.g;renderHome()});
+  const box=$('#list');
+  if(!key){box.innerHTML=noKeyCard();return}
+  try{
+    const r=await jam('/tracks/',{tags:genre,order:'popularity_week'});
+    if(view!=='home')return;
+    box.innerHTML=r.length?r.map((t,i)=>rowHTML(t,i,'home')).join(''):'<div class="empty">Kuch nahi mila</div>';
+    bindRows(r,'home');
+  }catch(e){box.innerHTML=errCard(e)}
+}
+function errCard(e){
+  if(!navigator.onLine)return '<div class="empty">Offline ho. Library → Offline se saved gaane chalao.</div>';
+  return `<div class="card"><b>Load nahi hua</b><p style="color:var(--mut);margin:6px 0 0">${esc(e.message)}. Key sahi hai? Settings check karo.</p></div>`;
+}
+let sTimer;
+function renderSearch(){
+  main.innerHTML=`<input type="search" id="q" placeholder="Gaana, artist ya album" autofocus><div id="list" style="margin-top:12px"></div>`;
+  const q=$('#q');
+  q.value=renderSearch.last||'';
+  const go=async()=>{
+    const v=q.value.trim();renderSearch.last=v;const box=$('#list');
+    if(!v){box.innerHTML='<div class="empty">Kuch search karo 🎧</div>';return}
+    if(!key){box.innerHTML=noKeyCard();return}
+    box.innerHTML='<div class="empty">Searching…</div>';
+    try{
+      const r=await jam('/tracks/',{search:v,order:'relevance'});
+      box.innerHTML=r.length?r.map((t,i)=>rowHTML(t,i,'search')).join(''):'<div class="empty">Kuch nahi mila</div>';
+      bindRows(r,'search');
+    }catch(e){box.innerHTML=errCard(e)}
+  };
+  q.oninput=()=>{clearTimeout(sTimer);sTimer=setTimeout(go,450)};
+  go();
+}
+function renderLib(sub){
+  const names=Object.keys(lists);
+  if(!sub){
+    main.innerHTML=`<h2>Library</h2>
+    <div class="row" data-s="liked"><div style="font-size:28px;width:48px;text-align:center">♥</div><div class="t"><b>Liked Songs</b><small>${liked.length} gaane</small></div></div>
+    <div class="row" data-s="offline"><div style="font-size:28px;width:48px;text-align:center">⬇️</div><div class="t"><b>Offline</b><small>${offline.length} gaane</small></div></div>
+    <h2>Playlists</h2>
+    ${names.map(n=>`<div class="row" data-s="pl:${esc(n)}"><div style="font-size:28px;width:48px;text-align:center">🎵</div><div class="t"><b>${esc(n)}</b><small>${lists[n].length} gaane</small></div></div>`).join('')||'<div class="empty">Abhi koi playlist nahi</div>'}
+    <button class="btn g" id="newPl" style="margin-top:12px">+ Nayi playlist</button>`;
+    main.querySelectorAll('[data-s]').forEach(el=>el.onclick=()=>renderLib(el.dataset.s));
+    $('#newPl').onclick=()=>{const n=prompt('Playlist ka naam?');if(n&&n.trim()){lists[n.trim()]=lists[n.trim()]||[];store.set('lists',lists);renderLib()}};
+    return;
+  }
+  let list,title;
+  if(sub==='liked'){list=liked;title='Liked Songs'}
+  else if(sub==='offline'){list=offline;title='Offline'}
+  else{const n=sub.slice(3).replace(/&amp;/g,'&');list=lists[n]||[];title=n}
+  main.innerHTML=`<div style="display:flex;align-items:center;gap:8px"><button class="ib" id="back" style="font-size:22px">‹</button><h2 style="margin:12px 0">${esc(title)}</h2></div>
+  ${list.length?`<button class="btn" id="playAll" style="margin-bottom:8px">▶ Play all</button>`:''}
+  <div id="list">${list.length?list.map((t,i)=>rowHTML(t,i,'lib')).join(''):'<div class="empty">Khaali hai</div>'}</div>
+  ${sub.startsWith('pl:')?'<button class="btn g" id="delPl" style="margin-top:16px">Playlist delete karo</button>':''}`;
+  $('#back').onclick=()=>renderLib();
+  if(list.length){$('#playAll').onclick=()=>play(list,0);bindRows(list,'lib')}
+  if(sub.startsWith('pl:'))$('#delPl').onclick=()=>{const n=sub.slice(3);if(confirm('Delete "'+n+'"?')){delete lists[n];store.set('lists',lists);renderLib()}};
+}
+function show(v){
+  view=v;
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  main.scrollTop=0;
+  if(v==='home')renderHome();else if(v==='search')renderSearch();else renderLib();
+}
+$('#nav').onclick=e=>{const b=e.target.closest('button');if(b)show(b.dataset.v)};
+
+/* ---------- library actions ---------- */
+function toggleLike(t){
+  if(isLiked(t.id))liked=liked.filter(x=>x.id!=t.id);else liked.unshift(t);
+  store.set('liked',liked);refreshHearts();
+  if(view==='home'||view==='search')document.querySelectorAll('.row').forEach(r=>{const l=ctxLists[r.dataset.ctx];if(!l)return;const tr=l[+r.dataset.i];if(!tr)return;const b=r.querySelector('[data-a=like]');if(b){b.textContent=isLiked(tr.id)?'♥':'♡';b.classList.toggle('on',isLiked(tr.id))}});
+  if(view==='lib'&&main.querySelector('#back'))renderLib(isLiked(t.id)?undefined:undefined);
+}
+function refreshHearts(){
+  const h=cur&&isLiked(cur.id)?'♥':'♡';
+  $('#mHeart').textContent=h;$('#fHeart').textContent=h;
+  $('#mHeart').classList.toggle('on',h==='♥');$('#fHeart').classList.toggle('on',h==='♥');
+}
+function openMore(t){
+  const names=Object.keys(lists);
+  $('#sheetBox').innerHTML=`<b>${esc(t.name)}</b><div style="color:var(--mut);margin-bottom:8px">${esc(t.artist_name)}</div>
+  <div class="row" data-x="off"><div class="t"><b>${isOff(t.id)?'Offline se hatao':'⬇️ Offline save karo'}</b></div></div>
+  <div class="row" data-x="new"><div class="t"><b>＋ Nayi playlist mein daalo</b></div></div>
+  ${names.map(n=>`<div class="row" data-x="pl" data-n="${esc(n)}"><div class="t"><b>🎵 ${esc(n)}</b></div></div>`).join('')}`;
+  $('#sheet').classList.add('open');
+  $('#sheetBox').onclick=async e=>{
+    const el=e.target.closest('[data-x]');if(!el)return;
+    const x=el.dataset.x;
+    $('#sheet').classList.remove('open');
+    if(x==='off')toggleOffline(t);
+    else if(x==='new'){const n=prompt('Playlist ka naam?');if(n&&n.trim())addToList(n.trim(),t)}
+    else addToList(el.dataset.n.replace(/&amp;/g,'&'),t);
+  };
+}
+$('#sheet').onclick=e=>{if(e.target.id==='sheet')$('#sheet').classList.remove('open')};
+function addToList(n,t){
+  lists[n]=lists[n]||[];
+  if(lists[n].some(x=>x.id==t.id)){toast('Pehle se hai');return}
+  lists[n].push(t);store.set('lists',lists);toast('"'+n+'" mein add hua');
+}
+async function toggleOffline(t){
+  try{
+    const c=await caches.open('raag-audio');
+    if(isOff(t.id)){
+      await c.delete(t.audio);offline=offline.filter(x=>x.id!=t.id);store.set('offline',offline);toast('Hata diya');return;
+    }
+    toast('Download ho raha hai…');
+    const r=await fetch(t.audio,{mode:'cors'});
+    if(!r.ok)throw 0;
+    await c.put(t.audio,r.clone());
+    offline.unshift(t);store.set('offline',offline);toast('Offline save ho gaya ✓');
+  }catch(e){toast('Offline save nahi ho paya')}
+}
+
+/* ---------- player ---------- */
+async function srcFor(t){
+  try{
+    const c=await caches.open('raag-audio');
+    const m=await c.match(t.audio);
+    if(m){const b=await m.blob();return URL.createObjectURL(b)}
+  }catch(e){}
+  return t.audio;
+}
+let lastBlob=null;
+async function play(list,i){
+  queue=list;qi=i;cur=list[i];
+  const s=await srcFor(cur);
+  if(lastBlob){URL.revokeObjectURL(lastBlob);lastBlob=null}
+  if(s.startsWith('blob:'))lastBlob=s;
+  au.src=s;
+  try{await au.play()}catch(e){toast('Play nahi hua')}
+  updateUI();
+  document.querySelectorAll('.row').forEach(r=>{const l=ctxLists[r.dataset.ctx];if(l)r.classList.toggle('playing',l[+r.dataset.i]?.id==cur.id)});
+}
+function updateUI(){
+  if(!cur)return;
+  $('#mini').style.display='flex';
+  $('#mImg').src=cur.image;$('#mT').textContent=cur.name;$('#mA').textContent=cur.artist_name;
+  $('#fImg').src=cur.image;$('#fT').textContent=cur.name;$('#fA').textContent=cur.artist_name;
+  refreshHearts();
+  if('mediaSession' in navigator){
+    navigator.mediaSession.metadata=new MediaMetadata({title:cur.name,artist:cur.artist_name,artwork:[{src:cur.image,sizes:'300x300'}]});
+  }
+}
+function setPlayIcon(){const p=!au.paused;$('#mPlay').textContent=p?'⏸':'▶';$('#fPlay').textContent=p?'⏸':'▶'}
+function next(){if(!queue.length)return;play(queue,(qi+1)%queue.length)}
+function prev(){if(!queue.length)return;if(au.currentTime>3){au.currentTime=0;return}play(queue,(qi-1+queue.length)%queue.length)}
+function toggle(){if(!cur)return;au.paused?au.play():au.pause()}
+$('#mPlay').onclick=e=>{e.stopPropagation();toggle()};
+$('#fPlay').onclick=toggle;$('#next').onclick=next;$('#prev').onclick=prev;
+$('#mHeart').onclick=e=>{e.stopPropagation();if(cur)toggleLike(cur)};
+$('#fHeart').onclick=()=>{if(cur)toggleLike(cur)};
+$('#fAdd').onclick=()=>{if(cur)openMore(cur)};
+$('#mini').onclick=()=>$('#full').classList.add('open');
+$('#fClose').onclick=()=>$('#full').classList.remove('open');
+au.onplay=au.onpause=setPlayIcon;
+au.onended=next;
+au.onerror=()=>{if(cur)toast('Ye gaana chal nahi raha')};
+au.ontimeupdate=()=>{
+  const d=au.duration||cur?.duration||0;
+  $('#cur').textContent=fmt(au.currentTime);$('#dur').textContent=fmt(d);
+  if(d){$('#seek').value=au.currentTime/d*100;$('#mBar').style.width=(au.currentTime/d*100)+'%'}
+};
+$('#seek').oninput=e=>{const d=au.duration||0;if(d)au.currentTime=e.target.value/100*d};
+if('mediaSession' in navigator){
+  navigator.mediaSession.setActionHandler('play',()=>au.play());
+  navigator.mediaSession.setActionHandler('pause',()=>au.pause());
+  navigator.mediaSession.setActionHandler('nexttrack',next);
+  navigator.mediaSession.setActionHandler('previoustrack',prev);
+}
+
+/* ---------- settings ---------- */
+function openSettings(){
+  $('#sheetBox').innerHTML=`<b>Settings</b>
+  <p style="color:var(--mut)">Jamendo client ID (free): developer.jamendo.com par signup karke "Create an application" karo, phir Client ID yahan paste karo.</p>
+  <input type="text" id="kIn" placeholder="Client ID" value="${esc(key)}" autocapitalize="off" autocomplete="off">
+  <div style="display:flex;gap:8px;margin-top:12px"><button class="btn" id="kSave">Save</button><button class="btn g" id="kClose">Band karo</button></div>
+  <p style="color:var(--mut);font-size:12px;margin-top:16px">Gaane Jamendo ke licensed free catalog se aate hain. Key sirf is device mein save hoti hai.</p>`;
+  $('#sheet').classList.add('open');
+  $('#sheetBox').onclick=null;
+  $('#kSave').onclick=()=>{key=$('#kIn').value.trim();store.set('key',key);$('#sheet').classList.remove('open');toast('Saved');show(view)};
+  $('#kClose').onclick=()=>$('#sheet').classList.remove('open');
+}
+$('#gear').onclick=openSettings;
+
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+show('home');
+if(!key)setTimeout(openSettings,600);
+</script>
+</body>
+</html>
